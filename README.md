@@ -1,7 +1,7 @@
 # 🌿 TechHelper Overlay — Electron App
 
 A floating AI-powered desktop helper for senior citizens. It sits on top of all your other windows and helps you understand your screen — step by simple step.
-
+Youtube: https://youtu.be/lEE2a3St2V8
 ---
 
 ## 🚀 Setup (takes about 5 minutes)
@@ -82,10 +82,9 @@ Output will be in the `dist/` folder.
 
 ---
 
-## 💡 Tips for the demo video
+## Demo
 
-1. Show the overlay floating over a confusing-looking website
-2. Tap "Help me with my screen!" 
-3. Show the AI response appearing + reading aloud
-4. Then show the voice input — speak a question and get an answer
-5. Mention it works alongside the web version at [your Vercel URL]
+<img width="477" height="666" alt="image" src="https://github.com/user-attachments/assets/6e3324ba-c336-4f5a-9c95-f10964812b12" />
+
+
+<img width="1623" height="1079" alt="image" src="https://github.com/user-attachments/assets/7546cf2a-efbb-4e52-87ea-730a28d6cdb2" />
