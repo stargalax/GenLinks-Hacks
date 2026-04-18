@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="Content-Security-Policy" content="
+default-src 'self' 'unsafe-inline' 'unsafe-eval';
+script-src 'self' 'unsafe-inline' 'unsafe-eval';
+style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+font-src https://fonts.gstatic.com;
+connect-src 'self' https://api.groq.com;
+img-src 'self' data:;
+media-src 'self' blob:;
+">
+    <title>TechHelper</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,600;0,700;1,400&family=DM+Sans:wght@400;500;600&display=swap');
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: transparent;
+            width: 380px;
+            height: 520px;
+            overflow: hidden;
+            border-radius: 24px;
+        }
+
+        .overlay {
+            width: 380px;
+            height: 520px;
+            background: #FFFFFF;
+            border-radius: 24px;
+            box-shadow: 0 8px 48px rgba(0, 0, 0, 0.22), 0 2px 8px rgba(0, 0, 0, 0.12);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            border: 1.5px solid #E8F0EC;
+        }
+
+        /* ── Title bar (draggable) ── */
+        .titlebar {
+            -webkit-app-region: drag;
+            background: linear-gradient(135deg, #2D6A4F, #1A3328);
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+        }
+
+        .titlebar-left {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .titlebar-icon {
+            font-size: 18px;
+        }
+
+        .titlebar-title {
+            font-family: 'Fraunces', serif;
+            font-size: 15px;
+            font-weight: 600;
+            color: #FDF6EC;
+        }
+
+        .titlebar-sub {
+            font-size: 11px;
+            color: #A8D5BA;
+            margin-top: 1px;
+        }
+
+        .titlebar-controls {
+            -webkit-app-region: no-drag;
+            display: flex;
+            gap: 8px;
+        }
+
+        .ctrl-btn {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            transition: all 0.15s;
+        }
+
+        .ctrl-min {
+            background: #FBBF2444;
+            color: #FDF6EC;
+        }
+
+        .ctrl-min:hover {
+            background: #FBBF24;
+            color: #1A3328;
+        }
+
+        .ctrl-close {
+            background: #EF444444;
+            color: #FDF6EC;
+        }
+
+        .ctrl-close:hover {
+            background: #EF4444;
+        }
+
+        /* ── Scrollable content ── */
+        .content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .content::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .content::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .content::-webkit-scrollbar-thumb {
+            background: #C8E6D4;
+            border-radius: 4px;
+        }
+
+        /* ── States ── */
+        .state {
+            display: none;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .state.active {
+            display: flex;
+        }
+
+        /* ── Idle state ── */
+        .greeting {
+            font-family: 'Fraunces', serif;
+            font-size: 20px;
+            font-weight: 700;
+            color: #1A3328;
+            line-height: 1.25;
+        }
+
+        .greeting span {
+            color: #E07B39;
+            font-style: italic;
+        }
+
+        .hint {
+            font-size: 14px;
+            color: #6B9E8A;
+            line-height: 1.5;
+        }
+
+        .big-btn {
+            width: 100%;
+            padding: 18px;
+            border: none;
+            border-radius: 16px;
+            cursor: pointer;
+            font-family: 'Fraunces', serif;
+            font-size: 18px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .btn-screenshot {
+            background: linear-gradient(135deg, #2D6A4F, #1A3328);
+            color: #FDF6EC;
+        }
+
+        .btn-screenshot:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px #2D6A4F44;
+        }
+
+        .or-divider {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #9DC4B3;
+            font-size: 13px;
+        }
+
+        .or-divider::before,
+        .or-divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: #D8EDE4;
+        }
+
+        .question-wrap {
+            display: flex;
+            gap: 8px;
+            align-items: flex-end;
+        }
+
+        .question-input {
+            flex: 1;
+            padding: 13px 14px;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 15px;
+            color: #1A3328;
+            background: #F7FBF9;
+            border: 2px solid #C8E6D4;
+            border-radius: 12px;
+            resize: none;
+            outline: none;
+            min-height: 52px;
+            max-height: 90px;
+            line-height: 1.4;
+            transition: border-color 0.2s;
+        }
+
+        .question-input::placeholder {
+            color: #9DC4B3;
+        }
+
+        .question-input:focus {
+            border-color: #2D6A4F;
+        }
+
+        .mic-btn {
+            width: 52px;
+            height: 52px;
+            flex-shrink: 0;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            background: linear-gradient(135deg, #E8F4EE, #D0EAD9);
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            box-shadow: 0 2px 8px #2D6A4F22;
+        }
+
+        .mic-btn:hover {
+            transform: scale(1.08);
+        }
+
+        .mic-btn.listening {
+            background: linear-gradient(135deg, #E07B39, #C05A20);
+            animation: pulse 1.2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                box-shadow: 0 0 0 0 #E07B3966;
+            }
+
+            50% {
+                box-shadow: 0 0 0 10px #E07B3900;
+            }
+        }
+
+        .mic-hint {
+            font-size: 12px;
+            color: #9DC4B3;
+            text-align: center;
+            min-height: 16px;
+        }
+
+        .mic-hint.active {
+            color: #E07B39;
+            font-weight: 600;
+        }
+
+        .ask-text-btn {
+            width: 100%;
+            padding: 14px;
+            background: #E07B39;
+            color: white;
+            border: none;
+            border-radius: 14px;
+            font-family: 'Fraunces', serif;
+            font-size: 17px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .ask-text-btn:hover {
+            background: #C05A20;
+            transform: translateY(-1px);
+        }
+
+        .ask-text-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* ── Loading state ── */
+        .loading-wrap {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            padding: 20px 0;
+        }
+
+        .spinner {
+            width: 52px;
+            height: 52px;
+            border-radius: 50%;
+            border: 4px solid #D0EAD9;
+            border-top-color: #2D6A4F;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .loading-text {
+            font-family: 'Fraunces', serif;
+            font-size: 17px;
+            color: #2D6A4F;
+            text-align: center;
+        }
+
+        .loading-sub {
+            font-size: 13px;
+            color: #9DC4B3;
+            text-align: center;
+        }
+
+        /* ── Response state ── */
+        .screenshot-thumb {
+            width: 100%;
+            border-radius: 10px;
+            overflow: hidden;
+            border: 1.5px solid #E8F0EC;
+            max-height: 110px;
+            object-fit: cover;
+        }
+
+        .response-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 4px;
+        }
+
+        .response-avatar {
+            width: 36px;
+            height: 36px;
+            flex-shrink: 0;
+            background: linear-gradient(135deg, #2D6A4F, #1A3328);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+        }
+
+        .response-label {
+            font-family: 'Fraunces', serif;
+            font-size: 15px;
+            font-weight: 600;
+            color: #1A3328;
+        }
+
+        .steps-wrap {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .step {
+            display: flex;
+            gap: 10px;
+            align-items: flex-start;
+        }
+
+        .step-num {
+            width: 26px;
+            height: 26px;
+            flex-shrink: 0;
+            margin-top: 2px;
+            background: #E07B39;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 13px;
+        }
+
+        .step-text {
+            font-size: 15px;
+            line-height: 1.6;
+            color: #2A4A3E;
+        }
+
+        .plain-text {
+            font-size: 15px;
+            line-height: 1.6;
+            color: #2A4A3E;
+        }
+
+        /* ── Bottom action row ── */
+        .action-row {
+            display: flex;
+            gap: 8px;
+            margin-top: 4px;
+        }
+
+        .action-btn {
+            flex: 1;
+            padding: 11px 8px;
+            border-radius: 12px;
+            border: none;
+            cursor: pointer;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .btn-read {
+            background: #FFF8F3;
+            border: 2px solid #E07B39;
+            color: #E07B39;
+        }
+
+        .btn-read:hover,
+        .btn-read.speaking {
+            background: #E07B39;
+            color: white;
+        }
+
+        .btn-again {
+            background: #EDF5F1;
+            border: 2px solid #2D6A4F;
+            color: #2D6A4F;
+        }
+
+        .btn-again:hover {
+            background: #2D6A4F;
+            color: white;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="overlay">
+
+        <!-- Title bar -->
+        <div class="titlebar">
+            <div class="titlebar-left">
+                <span class="titlebar-icon">🌿</span>
+                <div>
+                    <div class="titlebar-title">TechHelper</div>
+                    <div class="titlebar-sub">by GenLink</div>
+                </div>
+            </div>
+            <div class="titlebar-controls">
+                <button class="ctrl-btn ctrl-min" onclick="window.electronAPI.minimizeApp()">–</button>
+                <button class="ctrl-btn ctrl-close" onclick="window.electronAPI.closeApp()">✕</button>
+            </div>
+        </div>
+
+        <!-- Content -->
+        <div class="content">
+
+            <!-- IDLE STATE -->
+            <div class="state active" id="state-idle">
+                <div class="greeting">Need help with your <span>screen?</span></div>
+                <div class="hint">Tap the button below — I'll look at your screen and tell you exactly what to do!</div>
+
+                <button class="big-btn btn-screenshot" id="screenshotBtn">
+                    📸 Help me with my screen!
+                </button>
+
+                <div class="or-divider">or type / speak a question</div>
+
+                <div class="question-wrap">
+                    <textarea class="question-input" id="questionInput" placeholder='e.g. "How do I make text bigger?"'
+                        rows="2"></textarea>
+                    <button class="mic-btn" id="micBtn" title="Speak your question">🎤</button>
+                </div>
+                <div class="mic-hint" id="micHint">Tap 🎤 to speak instead of typing</div>
+
+                <button class="ask-text-btn" id="askTextBtn" disabled>Ask my question →</button>
+            </div>
+
+            <!-- LOADING STATE -->
+            <div class="state" id="state-loading">
+                <div class="loading-wrap">
+                    <div class="spinner"></div>
+                    <div class="loading-text">Looking at your screen...</div>
+                    <div class="loading-sub">I'll have your steps ready in a moment 😊</div>
+                </div>
+            </div>
+
+            <!-- RESPONSE STATE -->
+            <div class="state" id="state-response">
+                <img class="screenshot-thumb" id="screenshotThumb" src="" alt="Your screen" style="display:none" />
+                <div class="response-header">
+                    <div class="response-avatar">🤖</div>
+                    <div class="response-label">Here's what to do:</div>
+                </div>
+                <div class="steps-wrap" id="stepsWrap"></div>
+                <div class="action-row">
+                    <button class="action-btn btn-read" id="readBtn">🔊 Read aloud</button>
+                    <button class="action-btn btn-again" id="againBtn">+ New question</button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        const GROQ_API_KEY = ""; // 🔁 Replace!
+
+        const SYSTEM_PROMPT = `You are a warm, patient technology helper for senior citizens.
+Analyze the screen (if provided) and/or answer the question.
+Give:
+1. One sentence describing what you see (only if screenshot provided).
+2. 3-5 simple numbered steps to help them.
+3. A short encouraging closing message.
+Rules: No jargon. Simple language. One action per step. Be warm and patient.`;
+
+        let lastScreenshotBase64 = null;
+        let lastResponse = "";
+        let speaking = false;
+        let listening = false;
+        let mediaRecorder = null;
+        let audioChunks = [];
+
+        function showState(name) {
+            document.querySelectorAll(".state").forEach(el => el.classList.remove("active"));
+            document.getElementById(`state-${name}`).classList.add("active");
+        }
+
+        const questionInput = document.getElementById("questionInput");
+        const askTextBtn = document.getElementById("askTextBtn");
+        const micBtn = document.getElementById("micBtn");
+        const micHint = document.getElementById("micHint");
+
+        questionInput.addEventListener("input", () => {
+            askTextBtn.disabled = !questionInput.value.trim();
+        });
+
+        // ── Mic — MediaRecorder → Groq Whisper (reliable in Electron) ──────
+        // micBtn.addEventListener("click", async () => {
+        //     if (listening) {
+        //         mediaRecorder?.stop();
+        //         return;
+        //     }
+        //     try {
+        //         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        //         audioChunks = [];
+        //         mediaRecorder = new MediaRecorder(stream, { mimeType: "audio/webm" });
+
+        //         mediaRecorder.ondataavailable = (e) => {
+        //             if (e.data.size > 0) audioChunks.push(e.data);
+        //         };
+
+        //         mediaRecorder.onstop = async () => {
+        //             listening = false;
+        //             stream.getTracks().forEach(t => t.stop());
+        //             setMicState(false);
+        //             micHint.textContent = "⏳ Transcribing your voice...";
+
+        //             const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
+        //             const transcript = await transcribeWithWhisper(audioBlob);
+        //             if (transcript) {
+        //                 questionInput.value = questionInput.value
+        //                     ? questionInput.value + " " + transcript
+        //                     : transcript;
+        //                 askTextBtn.disabled = false;
+        //                 micHint.textContent = "✅ Got it! Tap 🎤 to speak again.";
+        //             } else {
+        //                 micHint.textContent = "Hmm, couldn't hear that. Please try again!";
+        //             }
+        //         };
+
+        //         mediaRecorder.start();
+        //         listening = true;
+        //         setMicState(true);
+        //     } catch (err) {
+        //         micHint.textContent = "⚠️ Mic access denied. Please allow microphone access.";
+        //         console.error("Mic error:", err);
+        //     }
+        // });
+        // ── Mic — MediaRecorder → Groq Whisper ──────
+        micBtn.addEventListener("click", async () => {
+            if (listening) {
+                mediaRecorder?.stop();
+                return;
+            }
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                audioChunks = [];
+
+                // ✅ Detect supported mimeType instead of hardcoding
+                const mimeType = [
+                    "audio/webm;codecs=opus",
+                    "audio/webm",
+                    "audio/ogg;codecs=opus",
+                    "audio/ogg",
+                    ""  // browser default
+                ].find(type => type === "" || MediaRecorder.isTypeSupported(type));
+
+                console.log("Using mimeType:", mimeType || "browser default");
+
+                mediaRecorder = mimeType
+                    ? new MediaRecorder(stream, { mimeType })
+                    : new MediaRecorder(stream);
+
+                mediaRecorder.onerror = (e) => {
+                    console.error("MediaRecorder error:", e.error);
+                    micHint.textContent = "⚠️ Recording error. Please try again.";
+                    listening = false;
+                    stream.getTracks().forEach(t => t.stop());
+                    setMicState(false);
+                };
+
+                mediaRecorder.ondataavailable = (e) => {
+                    if (e.data && e.data.size > 0) audioChunks.push(e.data);
+                };
+
+                mediaRecorder.onstop = async () => {
+                    listening = false;
+                    stream.getTracks().forEach(t => t.stop());
+                    setMicState(false);
+
+                    if (audioChunks.length === 0) {
+                        micHint.textContent = "⚠️ No audio captured. Try again.";
+                        return;
+                    }
+
+                    micHint.textContent = "⏳ Transcribing your voice...";
+
+                    // ✅ Use the actual recorded mimeType for the blob
+                    const actualMime = mediaRecorder.mimeType || "audio/webm";
+                    const audioBlob = new Blob(audioChunks, { type: actualMime });
+                    console.log("Blob size:", audioBlob.size, "type:", actualMime);
+
+                    const transcript = await transcribeWithWhisper(audioBlob, actualMime);
+                    if (transcript) {
+                        const q = questionInput.value
+                            ? questionInput.value + " " + transcript
+                            : transcript;
+
+                        questionInput.value = q;
+                        askTextBtn.disabled = false;
+
+                        showState("loading");
+                        await callGroq(null, null, q, true);
+                        // questionInput.value = questionInput.value
+                        //     ? questionInput.value + " " + transcript
+                        //     : transcript;
+                        // askTextBtn.disabled = false;
+                        // micHint.textContent = "✅ Got it! Tap 🎤 to speak again.";
+                    } else {
+                        micHint.textContent = "Hmm, couldn't hear that. Please try again!";
+                    }
+                };
+
+                mediaRecorder.start(250); // ✅ collect data every 250ms instead of all at once
+                listening = true;
+                setMicState(true);
+
+            } catch (err) {
+                micHint.textContent = "⚠️ Mic access denied. Please allow microphone access.";
+                console.error("Mic error:", err);
+            }
+        });
+        function setMicState(isListening) {
+            micBtn.classList.toggle("listening", isListening);
+            micBtn.textContent = isListening ? "⏹" : "🎤";
+            micHint.textContent = isListening
+                ? "🔴 Recording... tap to stop"
+                : "Tap 🎤 to speak instead of typing";
+            micHint.classList.toggle("active", isListening);
+        }
+
+        // async function transcribeWithWhisper(audioBlob) {
+        //     try {
+        //         const formData = new FormData();
+        //         formData.append("file", audioBlob, "audio.webm");
+        //         formData.append("model", "whisper-large-v3-turbo");
+        //         formData.append("response_format", "json");
+        //         formData.append("language", "en");
+
+        //         const res = await fetch("https://api.groq.com/openai/v1/audio/transcriptions", {
+        //             method: "POST",
+        //             headers: { "Authorization": `Bearer ${GROQ_API_KEY}` },
+        //             body: formData,
+        //         });
+        //         const data = await res.json();
+        //         return data.text?.trim() || null;
+        //     } catch (err) {
+        //         console.error("Whisper transcription error:", err);
+        //         return null;
+        //     }
+        // }
+        async function transcribeWithWhisper(audioBlob, mimeType) {
+            try {
+                // ✅ Pick the right filename extension for Groq/Whisper
+                const ext = mimeType.includes("ogg") ? "ogg" : "webm";
+                const filename = `audio.${ext}`;
+
+                const formData = new FormData();
+                formData.append("file", audioBlob, filename);
+                formData.append("model", "whisper-large-v3-turbo");
+                formData.append("response_format", "json");
+                // ✅ Remove language lock so it handles accents/noise better
+                // formData.append("language", "en");
+
+                const res = await fetch("https://api.groq.com/openai/v1/audio/transcriptions", {
+                    method: "POST",
+                    headers: { "Authorization": `Bearer ${GROQ_API_KEY}` },
+                    body: formData,
+                });
+
+                if (!res.ok) {
+                    const errText = await res.text();
+                    console.error("Whisper API error:", errText);
+                    return null;
+                }
+
+                const data = await res.json();
+                return data.text?.trim() || null;
+            } catch (err) {
+                console.error("Whisper transcription error:", err);
+                return null;
+            }
+        }
+
+        // ── Screenshot button ──
+        document.getElementById("screenshotBtn").addEventListener("click", async () => {
+            showState("loading");
+            const result = await window.electronAPI.takeScreenshot();
+            if (!result.success) {
+                alert("Screenshot failed: " + result.error);
+                showState("idle"); return;
+            }
+            lastScreenshotBase64 = result.base64;
+            await callGroq(result.base64, "image/png", "");
+        });
+
+        // ── Ask text button ──
+        askTextBtn.addEventListener("click", async () => {
+            const q = questionInput.value.trim();
+            if (!q) return;
+            showState("loading");
+            //await callGroq(null, null, q);
+            await callGroq(null, null, q, true);
+        });
+        async function getLatestScreenshot() {
+            try {
+                const result = await window.electronAPI.takeScreenshot();
+                if (!result.success) throw new Error(result.error);
+                lastScreenshotBase64 = result.base64;
+                return result.base64;
+            } catch (err) {
+                console.error("Auto screenshot failed:", err);
+                return null;
+            }
+        }
+        // ── Groq API ──
+        // async function callGroq(base64, mimeType, question) {
+        async function callGroq(base64, mimeType, question, autoCapture = false) {
+            const content = [];
+
+            if (autoCapture && !base64) {
+                base64 = await getLatestScreenshot();
+                mimeType = "image/png";
+            }
+
+            if (base64) {
+                content.push({
+                    type: "image_url",
+                    image_url: {
+                        url: `data:${mimeType};base64,${base64}`
+                    }
+                });
+            }
+
+            content.push({
+                type: "text",
+                text: question || "Please help me understand what I'm seeing and what to do next."
+            });
+
+            try {
+                const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${GROQ_API_KEY}`
+                    },
+                    body: JSON.stringify({
+                        model: base64
+                            ? "meta-llama/llama-4-scout-17b-16e-instruct"
+                            : "llama-3.3-70b-versatile",
+                        max_tokens: 700,
+                        messages: [
+                            { role: "system", content: SYSTEM_PROMPT },
+                            { role: "user", content },
+                        ],
+                    }),
+                });
+
+                const data = await res.json();
+                if (data.error) throw new Error(data.error.message);
+
+                lastResponse = data.choices[0].message.content;
+                renderResponse(base64, lastResponse);
+
+            } catch (err) {
+                alert("Something went wrong: " + err.message);
+                showState("idle");
+            }
+        }
+
+        // ── Render response ──
+        function renderResponse(base64, text) {
+            const thumb = document.getElementById("screenshotThumb");
+            if (base64) { thumb.src = `data:image/png;base64,${base64}`; thumb.style.display = "block"; }
+            else { thumb.style.display = "none"; }
+
+            const wrap = document.getElementById("stepsWrap");
+            wrap.innerHTML = "";
+            text.split("\n").filter(l => l.trim()).forEach(line => {
+                const m = line.match(/^(\d+)[.)]\s+(.*)/);
+                if (m) wrap.innerHTML += `<div class="step"><div class="step-num">${m[1]}</div><div class="step-text">${m[2]}</div></div>`;
+                else wrap.innerHTML += `<p class="plain-text">${line}</p>`;
+            });
+
+            showState("response");
+            speakText(text);
+        }
+
+        // ── Read aloud ──
+        const readBtn = document.getElementById("readBtn");
+        readBtn.addEventListener("click", () => {
+            if (speaking) { window.speechSynthesis.cancel(); setSpeaking(false); return; }
+            speakText(lastResponse);
+        });
+
+        function speakText(text) {
+            window.speechSynthesis.cancel();
+            const u = new SpeechSynthesisUtterance(text);
+            u.rate = 0.88;
+            u.onend = () => setSpeaking(false);
+            setSpeaking(true);
+            window.speechSynthesis.speak(u);
+        }
+
+        function setSpeaking(val) {
+            speaking = val;
+            readBtn.textContent = val ? "⏹ Stop" : "🔊 Read aloud";
+            readBtn.classList.toggle("speaking", val);
+        }
+
+        // ── Again button ──
+        document.getElementById("againBtn").addEventListener("click", () => {
+            window.speechSynthesis.cancel(); setSpeaking(false);
+            questionInput.value = ""; askTextBtn.disabled = true;
+            lastScreenshotBase64 = null;
+            micHint.textContent = "Tap 🎤 to speak instead of typing";
+            showState("idle");
+        });
+    </script>
+</body>
+
+</html>

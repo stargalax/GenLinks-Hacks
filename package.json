@@ -1,0 +1,39 @@
+{
+    "name": "techhelper-overlay",
+    "version": "1.0.0",
+    "description": "A floating AI helper overlay for senior citizens — by GenLink",
+    "main": "main.js",
+    "scripts": {
+        "start": "electron .",
+        "build:mac": "electron-builder --mac",
+        "build:win": "electron-builder --win",
+        "build:linux": "electron-builder --linux"
+    },
+    "dependencies": {
+        "electron-serve": "^2.1.1"
+    },
+    "devDependencies": {
+        "electron": "^30.0.0",
+        "electron-builder": "^24.0.0"
+    },
+    "build": {
+        "appId": "org.genlink.techhelper",
+        "productName": "TechHelper",
+        "files": [
+            "main.js",
+            "preload.js",
+            "index.html"
+        ],
+        "mac": {
+            "category": "public.app-category.utilities"
+        },
+        "win": {
+            "target": "nsis"
+        },
+        "linux": {
+            "target": "AppImage"
+        }
+    },
+    "author": "GenLink",
+    "license": "MIT"
+}
