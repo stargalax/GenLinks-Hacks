@@ -88,3 +88,12 @@ Output will be in the `dist/` folder.
 
 
 <img width="1623" height="1079" alt="image" src="https://github.com/user-attachments/assets/7546cf2a-efbb-4e52-87ea-730a28d6cdb2" />
+
+
+---
+
+## Developers
+| Developer | Github Profile |
+|----------|--------|
+| `Nikitha S` | https://github.com/stargalax |
+| `Nirmal S` | https://github.com/snthebeast03 |
